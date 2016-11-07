@@ -1,4 +1,5 @@
 (ns ticket-service.service.tickets
+  (:require [clojure.set :refer :all])
   (:import (java.time Instant)))
 
 (defrecord Position [row col])
@@ -13,18 +14,19 @@
 
 (def theater (flatten (for [i (range 1 11)] (for [k (range 1 11)] (Seat. (seat-name i k) (Position. i k))))))
 
-(def available-map (ref theater))
+(def available-map (ref (set theater)))
 
-(def hold-map (ref {}))
+(def hold-map (ref #{}))
 
-(def reserved-map (ref {}))
+(def reserved-map (ref #{}))
 
 (defn best-by-random [quantity available-map]
   (take quantity available-map))
 
 (defn hold [email seats available-map hold-map]
-  (alter available-map dissoc seats)
-  (alter hold-map conj (Hold. (.toString (java.util.UUID/randomUUID)) email seats (get-timestamp))))
+  (let [hold (Hold. (.toString (java.util.UUID/randomUUID)) email seats get-timestamp)]
+    (alter available-map difference (set seats))
+    (alter hold-map conj hold)))
 
 (defn find-expired [hold-map]
   (filter #(.isAfter (Instant/now) (Instant/ofEpochMilli (:expiration-timestamp %))) hold-map))
@@ -34,8 +36,9 @@
 
 (defn release-seats [available hold]
   (let [expired-holds (find-expired @hold) expired-seats (get-seats-from-holds expired-holds)]
-    (alter hold dissoc expired-holds)
-    (alter available conj expired-seats)))
+    (when (not-empty expired-holds)
+      (alter hold difference (set expired-holds))
+      (alter available conj expired-seats))))
 
 (defn hold-seats [quantity email]
   (dosync
