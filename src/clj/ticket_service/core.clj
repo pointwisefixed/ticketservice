@@ -32,16 +32,21 @@
                 (when repl-server
                   (repl/stop repl-server)))
 
+(def pool (ref ()))
 
 (defn stop-app []
   (doseq [component (:stopped (mount/stop))]
+    (ticket-service.service.tickets/shutdown-scheduler @pool)
     (log/info component "stopped"))
   (shutdown-agents))
+
 
 (defn start-app [args]
   (doseq [component (-> args
                         (parse-opts cli-options)
                         mount/start-with-args
+                        (dosync
+                          (ref-set pool (ticket-service.service.tickets/start-scheduler)))
                         :started)]
     (log/info component "started"))
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))

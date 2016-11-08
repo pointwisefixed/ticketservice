@@ -39,20 +39,8 @@
       :summary     "Holds (quantity) of seats to an email"
       (ok (ticketservice/hold-seats quantity email)))
 
-    (GET "/times/:x/:y" []
-      :return      Long
-      :path-params [x :- Long, y :- Long]
-      :summary     "x*y with path-parameters"
-      (ok (* x y)))
-
-    (POST "/divide" []
-      :return      Double
-      :form-params [x :- Long, y :- Long]
-      :summary     "x/y with form-parameters"
-      (ok (/ x y)))
-
-    (GET "/power" []
-      :return      Long
-      :header-params [x :- Long, y :- Long]
-      :summary     "x^y with header-parameters"
-      (ok (long (Math/pow x y))))))
+    (POST "/reserve" []
+      :return      String
+      :path-params [holdId :- String]
+      :summary     "Reserves the hold if it exists"
+      (ok (ticketservice/reserve-seats holdId)))))
