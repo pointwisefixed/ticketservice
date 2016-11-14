@@ -6,6 +6,7 @@
             [ticket-service.config :refer [env]]
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.tools.logging :as log]
+            [ticket-service.service.tickets :as ticket-service]
             [mount.core :as mount])
   (:gen-class))
 
@@ -32,22 +33,18 @@
                 (when repl-server
                   (repl/stop repl-server)))
 
-(def pool (ref ()))
-
 (defn stop-app []
   (doseq [component (:stopped (mount/stop))]
-    (ticket-service.service.tickets/shutdown-scheduler @pool)
-    (log/info component "stopped"))
+    (log/info component "stopped")
+    (ticket-service/stop-jobs))
   (shutdown-agents))
-
 
 (defn start-app [args]
   (doseq [component (-> args
                         (parse-opts cli-options)
                         mount/start-with-args
-                        (dosync
-                          (ref-set pool (ticket-service.service.tickets/start-scheduler)))
                         :started)]
+    (ticket-service/start-jobs)
     (log/info component "started"))
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))
 

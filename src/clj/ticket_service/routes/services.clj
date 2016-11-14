@@ -41,6 +41,6 @@
 
     (POST "/reserve" []
       :return      String
-      :path-params [holdId :- String]
+      :body-params [holdId :- String]
       :summary     "Reserves the hold if it exists"
       (ok (ticketservice/reserve-seats holdId)))))
